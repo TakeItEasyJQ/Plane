@@ -43,6 +43,7 @@ public class EnemyFeiji implements GameImage {     //敌人飞机
             }
             if (index == 3) {
                 GameView.gameImages.remove(this);
+                GameView.pool.play(GameView.boom,1,1,2,0,1);
                 GameView.great+=10;
                 progerss=0;
             }

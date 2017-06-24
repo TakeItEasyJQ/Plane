@@ -1,11 +1,19 @@
 package com.example.plane.Class;
 
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.media.SoundPool;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
+import android.support.v7.app.AlertDialog;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -20,6 +28,7 @@ import java.util.List;
  * Created by My Computer on 2017/6/20.
  */
 
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Runnable,View.OnTouchListener {
 
     private static final String TAG = "GameView";
@@ -43,15 +52,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
     private Paint score=new Paint();
     public static Canvas c;
 
+    public static boolean Firsttime=true;
     public  static boolean Dead=false;
     private SurfaceHolder holeder;
     private boolean state=false;
+    public static int great=0;
+    public  Thread thread=null;
+    private  boolean stopStatus=false;
+
 
     public static ArrayList<GameImage> gameImages=new ArrayList<>(); //先加入背景照片
     public static ArrayList<Missile> missiles=new ArrayList<>();
     public static List<Bitmap> explores=new ArrayList<>();
 
-    public static int great=0;
+    public static int boom;
+    public static int boom2;
+    public static int boom3;
+    public static int bullet;
+    public static int game_music;
+    public static SoundPool.Builder builder=new SoundPool.Builder();
+    public static SoundPool pool=builder.build();
 
     public GameView(Context context) {
         super(context);
@@ -70,6 +90,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         explores.add(explore2);
         explores.add(explore3);
         explores.add(explore4);
+
+        builder.setMaxStreams(10);
+        bullet=pool.load(getContext(),R.raw.bullet,1);
+        boom=pool.load(getContext(),R.raw.boom,2);
+        boom2=pool.load(getContext(),R.raw.boom2,2);
+        boom3=pool.load(getContext(),R.raw.boom3,2);
+        game_music=pool.load(getContext(),R.raw.game_music,3);
+
+//        pool.play(game_music,1,1,2,0,1);
     }
 
     private void init(){
@@ -79,6 +108,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         gameImages.add(new FeijiImage(me1,me2));         //所以每个实现GameImage接口的类都要返回一个图片，而该类的构造方法可以
         gameImages.add(new EnemyFeiji(enemy,explores));           //传入多个自己的图片，每次返回一张即可,在此添加的先后顺序影响到触碰时的这档问题
 
+        //加载声音池
     }
     @Override
     public void run() {     //绘画的中心方法
@@ -87,9 +117,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         try {
             int h=160;
             while (state){
+                while(stopStatus){
+                    try {
+                       Thread.sleep(100000000);
+                    }catch (Exception e ){
+                        e.printStackTrace();
+                    }
+                }
+
                 if (selectedfeiji!=null){
                     if (h==160){
                         missiles.add(new Missile(selectedfeiji,missile));
+                        pool.play(bullet,1,1,1,0,1);  //id，左声道，右声道，优先级，循环，速度
                         h=0;
                     }
                     h+=20;
@@ -104,10 +143,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
                         ((EnemyFeiji) image).getHit(missiles);                     //击中敌机
                         Dead=true;
                     }
+//                    if (image instanceof FeijiImage){
+//                        ((FeijiImage)image).getHit(gameImages);
+//                    }
                     c.drawBitmap(image.getBitmap() ,image.getX(),image.getY(),p);
+
                 }
                 for (GameImage missile:(List<Missile>)missiles.clone()){
                     c.drawBitmap(missile.getBitmap(),missile.getX(),missile.getY(),p);
+
                 }
                 if (num==100){
                     gameImages.add(new EnemyFeiji(enemy,explores));
@@ -132,17 +176,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         score.setColor(Color.BLACK);
         score.setTextSize(30);
         score.setDither(true);
+        Log.d(TAG, "surfaceCreated: ");
+
+
+        
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        Log.d(TAG, "surfaceChanged: ");
         display_w=width;
         display_h=height;
         init();
         this.holeder=holder;
         state=true;
-        Thread t= new Thread(this);
-        t.start();
+        thread= new Thread(this);
+        thread.start();
 //        try{
 //            Thread.sleep(1000);
 //            t=null;
@@ -153,6 +202,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.d(TAG, "surfaceDestroyed: ");
         state=false;
     }
 
@@ -185,123 +235,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         }
         return true;
     }
+    public  void stop(){  //按下暂停
+        stopStatus=true;
+    }
+    public  void start(){
+        stopStatus=false;
+        thread.interrupt();//唤醒
+    }
+
+
 }
-
-
-//    private interface GameImage{
-//        Bitmap getBitmap();
-//        int getX();
-//        int getY();
-//    }
-
-//    private class FeijiImage implements GameImage {   //自己的飞机
-//
-//
-//        private List<Bitmap> melist=new ArrayList<>();
-//        private Bitmap me1;
-//        private Bitmap me2;
-//        public  int x,y;
-//        private FeijiImage(Bitmap me1,Bitmap me2){
-//            this.me1=me1;
-//            this.me2=me2;
-//            melist.add(me1);
-//            melist.add(me2);
-//            x=(display_w-me1.getWidth())/2;
-//            y=display_h-me1.getHeight()-15;
-//        }
-//        private int index;
-//        @Override
-//        public Bitmap getBitmap() {
-//            Bitmap bitmap=melist.get(index);
-//            index++;
-//            if (index==melist.size()){
-//                index=0;
-//            }
-//            return bitmap;
-//        }
-//
-//        @Override
-//        public int getX() {
-//            return x;
-//        }
-//
-//        @Override
-//        public int getY() {
-//            return y;
-//        }
-//
-//    }
-//
-//    private class EnemyFeiji implements GameImage{     //敌人飞机
-//        private int x,y;
-//        private Bitmap enemy;
-//        Random r=new Random();
-//
-//        public EnemyFeiji(Bitmap enemy){
-//            this.enemy=enemy;
-//            int a=r.nextInt(display_w/enemy.getWidth());
-//            this.x=a*enemy.getWidth();
-//            Log.d(TAG, "EnemyFeiji: "+a);
-//        }
-//        @Override
-//        public Bitmap getBitmap() {
-//            y+=10;
-//            if (y-enemy.getHeight()>=display_h){
-//
-//                gameImages.remove(this);
-//                gameImages.add(new EnemyFeiji(enemy));
-//            }
-//            return enemy;
-//        }
-//
-//        @Override
-//        public int getX() {
-//            return x;
-//        }
-//
-//        @Override
-//        public int getY() {
-//            return y-enemy.getHeight();
-//        }
-//    }
-//
-//    private class Background implements GameImage{   //背景
-//
-//
-//        private int height=0;
-////        private int movoTo=display_h/200;
-//        private Bitmap newBg=null;
-//        private Bitmap bg;
-//
-//        private Background(Bitmap bg){
-//             this.bg=bg;
-//            newBg=Bitmap.createBitmap(display_w,display_h, Bitmap.Config.ARGB_8888);
-//         }
-//        public Bitmap getBitmap(){
-//            Paint paint=new Paint();
-//            if (height>=display_h){
-//                height=0;
-//            }
-//
-//                Canvas canvas=new Canvas(newBg);
-//                canvas.drawBitmap(bg,new Rect(0,0,bg.getWidth(),bg.getHeight()),//第一个new Rect为截取的区域 ;第二个new Rect为缩放的区域(上下左右四个点 )
-//                        new Rect(0,height,display_w,display_h+height),paint);//这个new Rect中的0,0往下移，下一个的也随之移动 |x不动，动Y就行
-//                //背景往下走 所以还有个照片在它的负位置
-//                canvas.drawBitmap(bg,new Rect(0,0,bg.getWidth(),bg.getHeight()),
-//                        new Rect(0,-display_h+height,display_w,height),paint);
-//                height+=5;
-//
-//            return newBg;
-//        }
-//
-//        @Override
-//        public int getX() {
-//            return 0;
-//        }
-//        @Override
-//        public int getY() {
-//            return 0;
-//        }
-//    }
 
 
