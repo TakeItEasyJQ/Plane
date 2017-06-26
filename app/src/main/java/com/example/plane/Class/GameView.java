@@ -42,6 +42,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
     public static Bitmap explore2;
     public static Bitmap explore3;
     public static Bitmap explore4;
+    private Bitmap meb1;
+    private Bitmap meb2;
+    private Bitmap meb3;
+    private Bitmap meb4;
 
     public static Bitmap erjihuancun;
 
@@ -64,6 +68,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
     public static ArrayList<GameImage> gameImages=new ArrayList<>(); //先加入背景照片
     public static ArrayList<Missile> missiles=new ArrayList<>();
     public static List<Bitmap> explores=new ArrayList<>();
+    public static List<Bitmap> meboom=new ArrayList<>();
 
     public static int boom;
     public static int boom2;
@@ -91,6 +96,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         explores.add(explore3);
         explores.add(explore4);
 
+        meb1=BitmapFactory.decodeResource(getResources(),R.drawable.img_meboom1);
+        meb2=BitmapFactory.decodeResource(getResources(),R.drawable.img_meboom2);
+        meb3=BitmapFactory.decodeResource(getResources(),R.drawable.img_meboom3);
+        meb4=BitmapFactory.decodeResource(getResources(),R.drawable.img_meboom4);
+
+        meboom.add(meb1);
+        meboom.add(meb2);
+        meboom.add(meb3);
+        meboom.add(meb4);
+
         builder.setMaxStreams(10);
         bullet=pool.load(getContext(),R.raw.bullet,1);
         boom=pool.load(getContext(),R.raw.boom,2);
@@ -105,7 +120,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
         erjihuancun=Bitmap.createBitmap(display_w,display_h, Bitmap.Config.ARGB_8888);
 
         gameImages.add(new Background(bg));              //意思就是每run一次就会遍历gameImage中所有的图片并画一次；
-        gameImages.add(new FeijiImage(me1,me2));         //所以每个实现GameImage接口的类都要返回一个图片，而该类的构造方法可以
+        gameImages.add(new FeijiImage(me1,me2,meboom));         //所以每个实现GameImage接口的类都要返回一个图片，而该类的构造方法可以
         gameImages.add(new EnemyFeiji(enemy,explores));           //传入多个自己的图片，每次返回一张即可,在此添加的先后顺序影响到触碰时的这档问题
 
         //加载声音池
@@ -139,12 +154,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback ,Run
                 Canvas canvas= holeder.lockCanvas();
                 c=new Canvas(erjihuancun);
                 for (GameImage image:(List<GameImage> )gameImages.clone()){                       //里面有多少图形就画多少图形
-                    if (image instanceof EnemyFeiji){
+                    if (image instanceof EnemyFeiji){                   //如果是敌人，调用敌人的受攻击方法
                         ((EnemyFeiji) image).getHit(missiles);                     //击中敌机
-                        Dead=true;
                     }
 //                    if (image instanceof FeijiImage){
 //                        ((FeijiImage)image).getHit(gameImages);
+//
 //                    }
                     c.drawBitmap(image.getBitmap() ,image.getX(),image.getY(),p);
 
